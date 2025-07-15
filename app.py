@@ -33,41 +33,368 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# --- Custom CSS ----------------------------------------------------------------
-# Glassmorphism cards + modern font + muted background
-CUSTOM_CSS = """
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+# --- Enhanced Glassmorphism CSS -----------------------------------------------
+GLASSMORPHISM_CSS = """
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
+/* ===== Base Styles & Variables ===== */
+:root {
+    --glass-bg: rgba(255, 255, 255, 0.25);
+    --glass-border: rgba(255, 255, 255, 0.18);
+    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    --hover-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.45);
+    --primary: #7c3aed;
+    --primary-light: rgba(124, 58, 237, 0.1);
+    --primary-glass: rgba(124, 58, 237, 0.08);
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --backdrop-blur: blur(20px);
+}
+
+/* ===== Global Background ===== */
 html, body, [class*="stApp"] {
-    font-family: 'Inter', sans-serif;
-    background: radial-gradient(circle at top left, #f5f7fa 0%, #e8eef7 35%, #e5ecf6 100%);
-    color: #222;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-attachment: fixed;
+    color: var(--text-primary);
+    min-height: 100vh;
 }
 
-/* Hide default Streamlit footer */
-footer {visibility: hidden;}
+/* Animated background orbs */
+[class*="stApp"]::before,
+[class*="stApp"]::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 80%, rgba(120, 119, 198, 0.3), transparent);
+    filter: blur(40px);
+    z-index: -1;
+}
 
-/* Hide hamburger menu */
-header [data-testid="stToolbar"] {display: none !important;}
+[class*="stApp"]::before {
+    width: 400px;
+    height: 400px;
+    top: -200px;
+    right: -100px;
+    animation: float 20s ease-in-out infinite;
+}
 
-/* Chat bubble containers */
+[class*="stApp"]::after {
+    width: 300px;
+    height: 300px;
+    bottom: -150px;
+    left: -50px;
+    animation: float 15s ease-in-out infinite reverse;
+}
+
+@keyframes float {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    33% { transform: translate(30px, -30px) rotate(120deg); }
+    66% { transform: translate(-20px, 20px) rotate(240deg); }
+}
+
+/* ===== Main Container Glass Effect ===== */
+.main .block-container {
+    background: var(--glass-bg);
+    backdrop-filter: var(--backdrop-blur);
+    -webkit-backdrop-filter: var(--backdrop-blur);
+    border-radius: 20px;
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    padding: 2rem;
+    margin: 1rem;
+}
+
+/* ===== Hide Streamlit Elements ===== */
+footer { visibility: hidden; }
+header [data-testid="stToolbar"] { display: none !important; }
+.reportview-container .main footer { display: none; }
+
+/* ===== Sidebar Glass Effect ===== */
+section[data-testid="stSidebar"] {
+    background: var(--glass-bg);
+    backdrop-filter: var(--backdrop-blur);
+    -webkit-backdrop-filter: var(--backdrop-blur);
+    border-right: 1px solid var(--glass-border);
+}
+
+section[data-testid="stSidebar"] > div {
+    background: transparent;
+}
+
+/* ===== Chat Messages Glass Style ===== */
+[data-testid="stChatMessage"] {
+    background: transparent !important;
+    padding: 0 !important;
+}
+
 .chat-bubble {
-    border-radius: 1.25rem;
-    padding: 1rem 1.2rem;
-    margin-bottom: .75rem;
-    box-shadow: 0 8px 24px rgb(0 0 0 / .05);
-    backdrop-filter: blur(10px);
+    backdrop-filter: var(--backdrop-blur);
+    -webkit-backdrop-filter: var(--backdrop-blur);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    border-radius: 20px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
 }
+
+.chat-bubble::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+    pointer-events: none;
+}
+
+.chat-bubble:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--hover-shadow);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
 .chat-user {
-    background: rgba(123, 76, 255, .15);
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(124, 58, 237, 0.05) 100%);
+    margin-left: auto;
+    max-width: 80%;
 }
+
 .chat-assistant {
-    background: rgba(255, 255, 255, .60);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.15) 100%);
+    margin-right: auto;
+    max-width: 80%;
+}
+
+/* ===== Chat Input Glass Style ===== */
+[data-testid="stChatInput"] > div {
+    background: var(--glass-bg) !important;
+    backdrop-filter: var(--backdrop-blur) !important;
+    -webkit-backdrop-filter: var(--backdrop-blur) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: 15px !important;
+    box-shadow: var(--glass-shadow) !important;
+    transition: all 0.3s ease !important;
+}
+
+[data-testid="stChatInput"] > div:focus-within {
+    border-color: rgba(124, 58, 237, 0.3) !important;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1), var(--hover-shadow) !important;
+}
+
+/* ===== Metrics Glass Cards ===== */
+[data-testid="metric-container"] {
+    background: var(--glass-bg);
+    backdrop-filter: var(--backdrop-blur);
+    -webkit-backdrop-filter: var(--backdrop-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 1.2rem;
+    box-shadow: var(--glass-shadow);
+    transition: all 0.3s ease;
+}
+
+[data-testid="metric-container"]:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: var(--hover-shadow);
+}
+
+[data-testid="metric-container"] label {
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 0.875rem;
+    letter-spacing: 0.025em;
+}
+
+[data-testid="metric-container"] [data-testid="stMetricValue"] {
+    background: linear-gradient(135deg, var(--primary) 0%, #a855f7 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+}
+
+/* ===== Tabs Glass Style ===== */
+[data-testid="stTabs"] {
+    background: transparent;
+}
+
+[data-testid="stTabs"] [data-baseweb="tab-list"] {
+    background: var(--glass-bg);
+    backdrop-filter: var(--backdrop-blur);
+    -webkit-backdrop-filter: var(--backdrop-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 4px;
+    gap: 4px;
+}
+
+[data-testid="stTabs"] [data-baseweb="tab"] {
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+[data-testid="stTabs"] [data-baseweb="tab"]:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+[data-testid="stTabs"] [aria-selected="true"] {
+    background: rgba(255, 255, 255, 0.3) !important;
+    color: var(--text-primary) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ===== Buttons Glass Style ===== */
+.stButton > button {
+    background: var(--glass-bg);
+    backdrop-filter: var(--backdrop-blur);
+    -webkit-backdrop-filter: var(--backdrop-blur);
+    border: 1px solid var(--glass-border);
+    color: var(--primary);
+    border-radius: 12px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    box-shadow: var(--glass-shadow);
+    transition: all 0.3s ease;
+}
+
+.stButton > button:hover {
+    background: rgba(124, 58, 237, 0.1);
+    border-color: rgba(124, 58, 237, 0.3);
+    transform: translateY(-2px);
+    box-shadow: var(--hover-shadow);
+}
+
+/* ===== Dataframe Glass Style ===== */
+[data-testid="stDataFrame"] {
+    background: var(--glass-bg);
+    backdrop-filter: var(--backdrop-blur);
+    -webkit-backdrop-filter: var(--backdrop-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--glass-shadow);
+}
+
+[data-testid="stDataFrame"] table {
+    background: transparent !important;
+}
+
+[data-testid="stDataFrame"] th {
+    background: rgba(124, 58, 237, 0.05) !important;
+    backdrop-filter: var(--backdrop-blur);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+[data-testid="stDataFrame"] td {
+    background: transparent !important;
+    border-color: var(--glass-border) !important;
+}
+
+[data-testid="stDataFrame"] tr:hover td {
+    background: rgba(124, 58, 237, 0.03) !important;
+}
+
+/* ===== Progress Bars Glass Style ===== */
+[data-testid="stProgress"] > div {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+[data-testid="stProgress"] > div > div {
+    background: linear-gradient(90deg, var(--primary) 0%, #a855f7 100%);
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+}
+
+/* ===== Select Box Glass Style ===== */
+[data-baseweb="select"] > div {
+    background: var(--glass-bg) !important;
+    backdrop-filter: var(--backdrop-blur) !important;
+    -webkit-backdrop-filter: var(--backdrop-blur) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: 12px !important;
+    box-shadow: var(--glass-shadow) !important;
+}
+
+[data-baseweb="select"] > div:hover {
+    border-color: rgba(124, 58, 237, 0.3) !important;
+}
+
+/* ===== Date Input Glass Style ===== */
+[data-testid="stDateInput"] > div > div {
+    background: var(--glass-bg) !important;
+    backdrop-filter: var(--backdrop-blur) !important;
+    -webkit-backdrop-filter: var(--backdrop-blur) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: 12px !important;
+}
+
+/* ===== Info/Warning/Error Glass Style ===== */
+[data-testid="stAlert"] {
+    background: var(--glass-bg);
+    backdrop-filter: var(--backdrop-blur);
+    -webkit-backdrop-filter: var(--backdrop-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    box-shadow: var(--glass-shadow);
+}
+
+/* ===== Spinner Glass Style ===== */
+[data-testid="stSpinner"] > div {
+    border-color: var(--primary) transparent transparent transparent !important;
+}
+
+/* ===== Typography ===== */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-primary);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+/* ===== Scrollbar Styling ===== */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(124, 58, 237, 0.3);
+    border-radius: 5px;
+    transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(124, 58, 237, 0.5);
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 768px) {
+    .main .block-container {
+        padding: 1rem;
+        margin: 0.5rem;
+    }
+    
+    .chat-bubble {
+        max-width: 95%;
+    }
 }
 </style>
 """
 
-st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+st.markdown(GLASSMORPHISM_CSS, unsafe_allow_html=True)
 
 ################################################################################
 # Session state initialisation
