@@ -75,7 +75,7 @@ with st.sidebar:
     df = st.session_state["df"]
 
     if not df.empty:
-        st.markdown('<div class="glass-metrics">', unsafe_allow_html=True)
+        st.markdown("<!--SNAPSHOT-START-->")  # Unique marker for CSS targeting
         with st.container():
             st.markdown('<div class="glass-metrics-heading">Quick Snapshot</div>', unsafe_allow_html=True)
             months = df["date"].dt.to_period("M").sort_values().unique()
@@ -95,7 +95,7 @@ with st.sidebar:
             st.metric("This Month's Spend", f"${month_total:,.2f}")
             st.metric("Top Category", top_cat)
             st.metric("Transactions Analysed", f"{len(df):,}")
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("<!--SNAPSHOT-END-->")
         
         # Category breakdown as an interactive pie chart in a glassmorphism container
         if not current_month.empty:
