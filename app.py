@@ -1,113 +1,158 @@
-"""backend.py – OpenAI (>=1.0) backend for Tapix AI assistant
-===========================================================
+"""app.py – Tapix AI Finance Assistant (premium Streamlit UI)
+================================================================
+A polished Streamlit front‑end that chats with `backend.py` (OpenAI v1)
+while showing instant spending metrics. Uses **st.rerun()** – compatible
+with Streamlit ≥ 1.27.  Drop the file in your repo, push, and redeploy.
 
-This version uses **openai‑python v1.x** (the current library) instead of the
-legacy `openai.ChatCompletion`.  Drop it next to *app.py*, push, and redeploy.
-
-Environment variables expected
------------------------------
-OPENAI_API_KEY   – required, your secret key
-OPENAI_MODEL     – optional, default ``gpt-4o-mini``
-
-Usage (inside app.py)
----------------------
-```python
-from backend import generate_ai_response
-assistant_reply = generate_ai_response(session_messages)
-```
+Deploy on Streamlit Cloud:
+    1. Add your OPENAI_API_KEY in Secrets.
+    2. Push this repo and deploy.
 """
+
 from __future__ import annotations
-
 import os
-from typing import List, Dict, Any, Optional
+from pathlib import Path
+from datetime import datetime
 
-try:
-    # openai ≥ 1.0 interface
-    from openai import OpenAI, OpenAIError  # type: ignore
-except ImportError as exc:  # pragma: no cover
-    raise ImportError(
-        "The 'openai' package is not installed. Add 'openai' to your "
-        "requirements.txt or run 'pip install openai' locally."
-    ) from exc
+import pandas as pd
+import streamlit as st
 
-# ----------------------------------------------------------------------------------
-# Configuration helpers
-# ----------------------------------------------------------------------------------
+if "OPENAI_API_KEY" in st.secrets:
+    os.environ.setdefault("OPENAI_API_KEY", st.secrets["OPENAI_API_KEY"])
 
-def _get_client() -> OpenAI:
-    """Return an OpenAI client configured from env‑vars."""
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError(
-            "Missing OPENAI_API_KEY environment variable. Set it in your deploy "
-            "settings or locally via `export OPENAI_API_KEY=...`."
-        )
-    return OpenAI(api_key=api_key)
+from backend import generate_ai_response
 
+################################################################################
+# Streamlit page & theme
+################################################################################
 
-DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-SYSTEM_PROMPT = (
-    "You are Tapix‑AI, an expert personal finance assistant who can explain "
-    "transactions, spot anomalies, and give budgeting tips in simple language."
+st.set_page_config(
+    page_title="Tapix AI Finance Assistant",
+    page_icon="💳",
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
-# ----------------------------------------------------------------------------------
-# Public API
-# ----------------------------------------------------------------------------------
+# --- Load External CSS ---------------------------------------------------------
+def load_css(file_path: str = "styles.css") -> str:
+    """Load CSS from external file with fallback to basic styles."""
+    css_file = Path(file_path)
+    
+    if css_file.exists():
+        return css_file.read_text()
+    else:
+        # Fallback CSS if external file doesn't exist
+        return """
+        <style>
+        html, body, [class*="stApp"] {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f7fa;
+        }
+        .chat-bubble {
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .chat-user {
+            background: #e3f2fd;
+            margin-left: auto;
+            max-width: 80%;
+        }
+        .chat-assistant {
+            background: #ffffff;
+            margin-right: auto;
+            max-width: 80%;
+        }
+        footer {visibility: hidden;}
+        </style>
+        """
 
-def generate_ai_response(
-    chat_history: List[Dict[str, str]],
-    *,
-    extra_context: Optional[Dict[str, Any]] = None,
-    model: str = DEFAULT_MODEL,
-    max_tokens: int = 512,
-    temperature: float = 0.4,
-) -> str:
-    """Return assistant reply for the given **chat_history**.
+# Apply CSS
+css_content = load_css()
+st.markdown(f"<style>{css_content}</style>", unsafe_allow_html=True)
 
-    Parameters
-    ----------
-    chat_history
-        List of {"role": "user"|"assistant"|"system", "content": str} dicts.
-    extra_context
-        Optional dict merged into the system prompt (e.g. Tapix data).
-    model, max_tokens, temperature
-        Usual OpenAI generation knobs.
-    """
-    client = _get_client()
+################################################################################
+# Session state initialisation
+################################################################################
 
-    # ----- Build full message list -------------------------------------------------
-    messages: List[Dict[str, str]] = [
-        {"role": "system", "content": _build_system_prompt(extra_context)},
-    ] + chat_history
+if "messages" not in st.session_state:
+    st.session_state["messages"] = [
+        {
+            "role": "assistant",
+            "content": "👋 **Welcome!** Ask me anything about your spending – for example, *'How much did I spend on coffee this month?'*",
+        }
+    ]
 
-    try:
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,  # type: ignore[arg-type]
-            max_tokens=max_tokens,
-            temperature=temperature,
+################################################################################
+# Sidebar – quick metrics
+################################################################################
+
+with st.sidebar:
+    st.markdown("### 📊 Quick snapshot")
+
+    # Load sample data (CSV bundled) or empty df
+    data_file = Path("sample_transactions.csv")
+    if data_file.exists():
+        df = pd.read_csv(data_file, parse_dates=["date"])
+    else:
+        df = pd.DataFrame(columns=["date", "amount", "category"])
+
+    if not df.empty:
+        current_month = df[df["date"].dt.to_period("M") == datetime.today().date().replace(day=1).strftime("%Y-%m")]
+        month_total = current_month["amount"].sum()
+        top_cat = (
+            current_month.groupby("category")["amount"].sum().sort_values(ascending=False).head(1).index[0]
+            if not current_month.empty else "–"
         )
-    except OpenAIError as e:  # pragma: no cover
-        return (
-            "⚠️ Sorry, I ran into an error talking to OpenAI: "
-            f"{e.__class__.__name__}: {e}.  Please try again later."
-        )
 
-    return response.choices[0].message.content.strip()
+        st.metric("This Month's Spend", f"${month_total:,.2f}")
+        st.metric("Top Category", top_cat)
+        st.metric("Transactions Analysed", f"{len(df):,}")
+    else:
+        st.info("No transaction data loaded yet.")
 
+    st.markdown("""---
+    Made with ❤️ by **Tapix** + **OpenAI**
+    """)
 
-# ----------------------------------------------------------------------------------
-# Helpers
-# ----------------------------------------------------------------------------------
+################################################################################
+# Main chat area
+################################################################################
 
-def _build_system_prompt(extra: Optional[Dict[str, Any]]) -> str:
-    """Merge **extra** context into the SYSTEM_PROMPT."""
-    if not extra:
-        return SYSTEM_PROMPT
+st.markdown("## 💬 Chat with your finances", unsafe_allow_html=True)
 
-    context_lines = ["Here is additional context you can use:"]
-    for key, value in extra.items():
-        context_lines.append(f"- {key}: {value}")
+# Display message history
+for msg in st.session_state["messages"]:
+    with st.chat_message(msg["role"]):
+        bubble_cls = "chat-user" if msg["role"] == "user" else "chat-assistant"
+        st.markdown(f'<div class="chat-bubble {bubble_cls}">{msg["content"]}</div>', unsafe_allow_html=True)
 
-    return f"{SYSTEM_PROMPT}\n\n" + "\n".join(context_lines)
+# Chat input
+prompt = st.chat_input("Type your question and press Enter…")
+
+if prompt:
+    # 1) Save user prompt
+    st.session_state["messages"].append({"role": "user", "content": prompt})
+
+    # 2) Display user bubble immediately
+    with st.chat_message("user"):
+        st.markdown(f'<div class="chat-bubble chat-user">{prompt}</div>', unsafe_allow_html=True)
+
+    # 3) Call backend AI in a spinner
+    with st.chat_message("assistant"):
+        with st.spinner("Thinking…"):
+            try:
+                reply = generate_ai_response(st.session_state["messages"])
+            except Exception:
+                reply = "⚠️ Sorry, I couldn't reach the AI service right now. Please try again in a bit."
+
+        st.markdown(f'<div class="chat-bubble chat-assistant">{reply}</div>', unsafe_allow_html=True)
+
+    # 4) Save assistant reply & rerun to refresh history
+    st.session_state["messages"].append({"role": "assistant", "content": reply})
+    st.rerun()
+
+################################################################################
+# End of script
+################################################################################
