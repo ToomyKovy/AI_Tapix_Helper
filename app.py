@@ -136,10 +136,8 @@ with st.sidebar:
             st.markdown("<h4 style='margin-top:0'>📈 Category Breakdown</h4>", unsafe_allow_html=True)
             st.plotly_chart(fig, use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
-        else:
-            st.info("No transactions for the selected month.")
-    else:
-        st.info("No transaction data loaded yet. Make sure 'sample_transactions.csv' exists.")
+        # Do not render any container or heading if current_month is empty
+    # Removed st.info for no transaction data loaded
 
 ################################################################################
 # Main area with tabs
@@ -151,14 +149,45 @@ tab1, tab2 = st.tabs(["💬 AI Chat", "📋 Transactions"])
 with tab1:
     st.markdown("## Chat with your finances", unsafe_allow_html=True)
 
-    # Suggested questions
-    st.markdown("**Try asking:**")
-    st.markdown("- How much did I spend on groceries last month?")
-    st.markdown("- What was my biggest expense in March?")
-    st.markdown("- Show me a summary of my spending by category.")
-    st.markdown("- Did I spend more this month than last month?")
-    st.markdown("- Are there any unusual transactions this week?")
-    st.markdown("- How much did I spend at Starbucks?")
+    # Suggested questions as clickable glassmorphism buttons
+    suggested_questions = [
+        "How much did I spend on groceries last month?",
+        "What was my biggest expense in March?",
+        "Show me a summary of my spending by category.",
+        "Did I spend more this month than last month?",
+        "Are there any unusual transactions this week?",
+        "How much did I spend at Starbucks?"
+    ]
+    st.markdown('<div style="display: flex; flex-wrap: wrap; gap: 0.5rem 0.5rem; margin-bottom: 1rem;">', unsafe_allow_html=True)
+    for q in suggested_questions:
+        if st.button(q, key=f"suggested_{q}", help="Click to ask this question", use_container_width=False):
+            st.session_state["messages"].append({"role": "user", "content": q})
+            # Display user bubble immediately
+            with st.chat_message("user"):
+                st.markdown(f'<div class="chat-bubble chat-user">{q}</div>', unsafe_allow_html=True)
+            # Call backend AI in a spinner, passing transaction data as context
+            with st.chat_message("assistant"):
+                with st.spinner("Thinking…"):
+                    try:
+                        extra_context = {}
+                        if not df.empty:
+                            extra_context = {
+                                "total_transactions": len(df),
+                                "date_range": f"{df['date'].min().strftime('%Y-%m-%d')} to {df['date'].max().strftime('%Y-%m-%d')}",
+                                "total_spent": f"${df['amount'].sum():,.2f}",
+                                "categories": df['category'].unique().tolist(),
+                                "recent_transactions": df.head(10).to_dict('records')
+                            }
+                        reply = generate_ai_response(
+                            st.session_state["messages"],
+                            extra_context=extra_context
+                        )
+                    except Exception as e:
+                        reply = f"<span style='color:red;'>⚠️ Sorry, I couldn't reach the AI service right now.<br>Error: {str(e)}</span>"
+                st.markdown(f'<div class="chat-bubble chat-assistant">{reply}</div>', unsafe_allow_html=True)
+            st.session_state["messages"].append({"role": "assistant", "content": reply})
+            st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # Display message history
     for msg in st.session_state["messages"]:
