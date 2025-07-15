@@ -69,6 +69,15 @@ df = load_transactions()
 with st.sidebar:
     st.markdown("### 📊 Quick snapshot")
 
+    # CSV upload feature
+    uploaded_file = st.file_uploader("Upload your transactions CSV", type=["csv"])
+    if uploaded_file:
+        try:
+            df = pd.read_csv(uploaded_file, parse_dates=["date"])
+            st.success("Transactions loaded!")
+        except Exception as e:
+            st.error(f"Failed to load CSV: {e}")
+
     if not df.empty:
         current_month = df[df["date"].dt.to_period("M") == datetime.today().date().replace(day=1).strftime("%Y-%m")]
         month_total = current_month["amount"].sum()
@@ -104,6 +113,15 @@ tab1, tab2 = st.tabs(["💬 AI Chat", "📋 Transactions"])
 with tab1:
     st.markdown("## Chat with your finances", unsafe_allow_html=True)
 
+    # Suggested questions
+    st.markdown("**Try asking:**")
+    st.markdown("- How much did I spend on groceries last month?")
+    st.markdown("- What was my biggest expense in March?")
+    st.markdown("- Show me a summary of my spending by category.")
+    st.markdown("- Did I spend more this month than last month?")
+    st.markdown("- Are there any unusual transactions this week?")
+    st.markdown("- How much did I spend at Starbucks?")
+
     # Display message history
     for msg in st.session_state["messages"]:
         with st.chat_message(msg["role"]):
@@ -135,14 +153,12 @@ with tab1:
                             "categories": df['category'].unique().tolist(),
                             "recent_transactions": df.head(10).to_dict('records')
                         }
-                    
                     reply = generate_ai_response(
                         st.session_state["messages"], 
                         extra_context=extra_context
                     )
                 except Exception as e:
-                    reply = f"⚠️ Sorry, I couldn't reach the AI service right now. Error: {str(e)}"
-
+                    reply = f"<span style='color:red;'>⚠️ Sorry, I couldn't reach the AI service right now.<br>Error: {str(e)}</span>"
             st.markdown(f'<div class="chat-bubble chat-assistant">{reply}</div>', unsafe_allow_html=True)
 
         # 4) Save assistant reply & rerun to refresh history
@@ -212,7 +228,7 @@ with tab2:
         else:
             st.info("No transactions found for the selected filters.")
     else:
-        st.warning("⚠️ No transaction data available. Please ensure 'sample_transactions.csv' exists in your project directory.")
+        st.warning("⚠️ No transaction data available. Please ensure 'sample_transactions.csv' exists in your project directory or upload a CSV file in the sidebar.")
 
 ################################################################################
 # End of script

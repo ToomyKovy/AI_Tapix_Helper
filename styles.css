@@ -13,12 +13,12 @@
    ============================================ */
 :root {
     /* Glass Effects */
-    --glass-bg: rgba(255, 255, 255, 0.25);
+    --glass-bg: rgba(255,255,255,0.7); /* more opaque glass */
     --glass-bg-light: rgba(255, 255, 255, 0.35);
     --glass-bg-dark: rgba(255, 255, 255, 0.15);
     --glass-border: rgba(255, 255, 255, 0.18);
     --glass-border-hover: rgba(255, 255, 255, 0.25);
-    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    --glass-shadow: 0 8px 32px 0 rgba(31,38,135,0.10); /* softer shadow */
     --glass-shadow-hover: 0 8px 32px 0 rgba(31, 38, 135, 0.45);
     --glass-shadow-inset: inset 0 0 20px rgba(255, 255, 255, 0.05);
     
@@ -42,7 +42,7 @@
     --text-on-glass: rgba(30, 41, 59, 0.9);
     
     /* Background Gradients */
-    --bg-gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --bg-gradient-1: linear-gradient(135deg, #e0e7ff 0%, #f0f4f8 100%); /* lighter gradient */
     --bg-gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
     --bg-gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
     --bg-gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
@@ -106,15 +106,68 @@ html {
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* Accessibility: Increase base font size and ensure contrast */
 html, body, [class*="stApp"] {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: var(--bg-gradient-1);
-    background-attachment: fixed;
+    font-size: 18px;
     color: var(--text-primary);
-    line-height: 1.6;
-    min-height: 100vh;
-    margin: 0;
-    padding: 0;
+    background: var(--bg-gradient-1);
+}
+
+/* Accessibility: Focus outlines for interactive elements */
+button:focus, [tabindex]:focus, input:focus, select:focus, textarea:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* Accessibility: High contrast for important text */
+h1, h2, h3, h4, h5, h6, label, .stButton > button, .glass-button {
+    color: #1e293b !important;
+}
+
+/* Responsive: Adjust padding/margins for mobile */
+@media (max-width: 768px) {
+    .main .block-container, section[data-testid="stSidebar"] {
+        padding: 1rem;
+        margin: 0.5rem;
+    }
+    .chat-bubble, .glass-card {
+        padding: 0.8rem 0.7rem;
+        margin-bottom: 1rem;
+    }
+    html, body, [class*="stApp"] {
+        font-size: 16px;
+    }
+}
+
+/* Accessibility: Add ARIA roles via CSS for Streamlit containers */
+.main .block-container {
+    role: main;
+}
+section[data-testid="stSidebar"] {
+    role: complementary;
+}
+
+.main .block-container, section[data-testid="stSidebar"] {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    box-shadow: var(--glass-shadow);
+    padding: 2rem;
+    margin: 1rem;
+}
+
+/* Ensure good contrast for headings and metrics */
+h1, h2, h3, h4, h5, h6, [data-testid="metric-container"] label {
+    color: var(--text-primary);
+}
+
+/* Add more separation for chat bubbles and cards */
+.chat-bubble, .glass-card {
+    margin-bottom: 1.5rem;
+    box-shadow: var(--glass-shadow);
+    background: var(--glass-bg);
+    border-radius: 20px;
+    padding: 1.2rem 1.5rem;
 }
 
 /* ============================================
