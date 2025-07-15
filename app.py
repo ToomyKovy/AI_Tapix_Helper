@@ -62,6 +62,10 @@ def load_transactions():
 
 df = load_transactions()
 
+# Use session state for transaction data
+if "df" not in st.session_state:
+    st.session_state["df"] = df
+
 ################################################################################
 # Sidebar – quick metrics
 ################################################################################
@@ -73,10 +77,13 @@ with st.sidebar:
     uploaded_file = st.file_uploader("Upload your transactions CSV", type=["csv"])
     if uploaded_file:
         try:
-            df = pd.read_csv(uploaded_file, parse_dates=["date"])
+            uploaded_df = pd.read_csv(uploaded_file, parse_dates=["date"])
+            st.session_state["df"] = uploaded_df
             st.success("Transactions loaded!")
         except Exception as e:
             st.error(f"Failed to load CSV: {e}")
+
+    df = st.session_state["df"]
 
     if not df.empty:
         current_month = df[df["date"].dt.to_period("M") == datetime.today().date().replace(day=1).strftime("%Y-%m")]
@@ -108,6 +115,7 @@ with st.sidebar:
 # Main area with tabs
 ################################################################################
 
+df = st.session_state["df"]
 tab1, tab2 = st.tabs(["💬 AI Chat", "📋 Transactions"])
 
 with tab1:
@@ -168,6 +176,7 @@ with tab1:
 with tab2:
     st.markdown("## 📋 Transaction History", unsafe_allow_html=True)
     
+    df = st.session_state["df"]
     if not df.empty:
         # Date filter
         col1, col2 = st.columns(2)
