@@ -162,6 +162,24 @@ with tab1:
     for q in suggested_questions:
         if st.button(q, key=f"suggested_{q}"):
             st.session_state["messages"].append({"role": "user", "content": q})
+            # Immediately process as chat (same as manual input)
+            try:
+                extra_context = {}
+                if not df.empty:
+                    extra_context = {
+                        "total_transactions": len(df),
+                        "date_range": f"{df['date'].min().strftime('%Y-%m-%d')} to {df['date'].max().strftime('%Y-%m-%d')}",
+                        "total_spent": f"${df['amount'].sum():,.2f}",
+                        "categories": df['category'].unique().tolist(),
+                        "recent_transactions": df.head(10).to_dict('records')
+                    }
+                reply = generate_ai_response(
+                    st.session_state["messages"],
+                    extra_context=extra_context
+                )
+            except Exception as e:
+                reply = f"<span style='color:red;'>⚠️ Sorry, I couldn't reach the AI service right now.<br>Error: {str(e)}</span>"
+            st.session_state["messages"].append({"role": "assistant", "content": reply})
             st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
