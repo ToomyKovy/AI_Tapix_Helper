@@ -1,175 +1,153 @@
-"""app.py – Premium‑styled Tapix AI Finance Assistant
-================================================
-A polished Streamlit front‑end with custom fonts, glassmorphism cards, and
-minimal chrome.  Works with `backend.py` (OpenAI v1) and sample / Tapix data.
+"""app.py – Tapix AI Finance Assistant (premium Streamlit UI)
+================================================================
+A polished Streamlit front‑end that chats with `backend.py` (OpenAI v1)
+while showing instant spending metrics. Uses **st.rerun()** – compatible
+with Streamlit ≥ 1.27.  Drop the file in your repo, push, and redeploy.
 
 Run locally:
-    $ export OPENAI_API_KEY="sk‑..."
+    $ export OPENAI_API_KEY="sk‑..."   # your OpenAI key
     $ pip install -r requirements.txt
     $ streamlit run app.py
-
-Deployed on Streamlit Cloud → just push + redeploy.
 """
-from __future__ import annotations
 
-import json
+from __future__ import annotations
+import os
 from pathlib import Path
-from typing import List, Dict
+from datetime import datetime
 
 import pandas as pd
 import streamlit as st
 
 from backend import generate_ai_response
 
-###############################################################################
-# Page & global style
-###############################################################################
+################################################################################
+# Streamlit page & theme
+################################################################################
 
 st.set_page_config(
     page_title="Tapix AI Finance Assistant",
     page_icon="💳",
     layout="wide",
+    initial_sidebar_state="expanded",
 )
 
-# Inject premium CSS: Inter font, glass cards, custom chat bubbles, hide footer.
+# --- Custom CSS ----------------------------------------------------------------
+# Glassmorphism cards + modern font + muted background
 CUSTOM_CSS = """
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-
-:root {
-    --primary: #7b4cff;
-    --radius: 1.25rem;
-    --card-bg: rgba(255, 255, 255, 0.75);
-    --card-blur: 12px;
-}
-
-/* ----- General app styles ----- */
-body, div, .stMarkdown p, .stMarkdown li {
+html, body, [class*="stApp"] {
     font-family: 'Inter', sans-serif;
-}
-
-[data-testid="stSidebar"] > div:first-child {
-    background: linear-gradient(180deg, #7b4cff 0%, #6a3eff 100%);
-    color: #ffffff;
-}
-
-/* Main background */
-[data-testid="stAppViewContainer"] > .main {
-    background: radial-gradient(circle at top left, #f0f3ff 0%, #ffffff 60%);
-}
-
-/* Glassmorphism card for chat */
-.chat-card {
-    background: var(--card-bg);
-    backdrop-filter: blur(var(--card-blur));
-    -webkit-backdrop-filter: blur(var(--card-blur));
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: var(--radius);
-    padding: 2rem 1.5rem 1rem 1.5rem;
-    margin-bottom: 1rem;
-}
-
-/* Bubbles */
-.message-user, .message-ai {
-    padding: 0.75rem 1rem;
-    border-radius: var(--radius);
-    line-height: 1.4;
-    max-width: 80%;
-}
-
-.message-user {
-    background: var(--primary);
-    color: #fff;
-    margin-left: auto;
-}
-
-.message-ai {
-    background: #ececff;
+    background: radial-gradient(circle at top left, #f5f7fa 0%, #e8eef7 35%, #e5ecf6 100%);
     color: #222;
-    margin-right: auto;
 }
 
-/* Hide Streamlit footer */
+/* Hide default Streamlit footer */
 footer {visibility: hidden;}
+
+/* Hide hamburger menu */
+header [data-testid="stToolbar"] {display: none !important;}
+
+/* Chat bubble containers */
+.chat-bubble {
+    border-radius: 1.25rem;
+    padding: 1rem 1.2rem;
+    margin-bottom: .75rem;
+    box-shadow: 0 8px 24px rgb(0 0 0 / .05);
+    backdrop-filter: blur(10px);
+}
+.chat-user {
+    background: rgba(123, 76, 255, .15);
+}
+.chat-assistant {
+    background: rgba(255, 255, 255, .60);
+}
 </style>
 """
 
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
-###############################################################################
-# Data helpers & initialization
-###############################################################################
+################################################################################
+# Session state initialisation
+################################################################################
 
-@st.cache_data
-def load_sample_transactions() -> pd.DataFrame:
-    csv_path = Path(__file__).with_suffix(".csv")
-    if csv_path.exists():
-        return pd.read_csv(csv_path)
-    # Fallback inline sample
-    data = {
-        "date": ["2025-07-10", "2025-07-09", "2025-07-08", "2025-07-05", "2025-07-04"],
-        "merchant": ["Netflix", "Starbucks", "Amazon", "Adidas", "Uber"],
-        "amount": [-9.99, -4.5, -56.2, -89.0, -17.3],
-        "category": ["Entertainment", "Coffee", "Shopping", "Shopping", "Transport"],
-    }
-    return pd.DataFrame(data)
-
-transactions = load_sample_transactions()
-
-###############################################################################
-# Sidebar – quick stats & navigation
-###############################################################################
-
-with st.sidebar:
-    st.markdown("## 💸 This Month")
-    month_spend = transactions["amount"].sum()
-    top_cat = transactions["category"].mode()[0]
-    st.metric("Total Spend", f"${abs(month_spend):,.2f}")
-    st.metric("Top Category", top_cat)
-    st.markdown("---")
-    st.markdown("### Suggested questions")
-    SUGGESTIONS = [
-        "How much have I spent on coffee this month?",
-        "What’s my biggest expense this week?",
-        "Predict my bills for next month.",
-    ]
-    for q in SUGGESTIONS:
-        if st.button(q):
-            if "messages" not in st.session_state:
-                st.session_state["messages"] = []
-            st.session_state["messages"].append({"role": "user", "content": q})
-            st.experimental_rerun()
-
-###############################################################################
-# Main – chat interface
-###############################################################################
-
-st.markdown("# Tapix AI Finance Assistant")
-
-# Initialise chat history
 if "messages" not in st.session_state:
     st.session_state["messages"] = [
-        {"role": "assistant", "content": "Hi! I’m your finance assistant. Ask me anything about your spending."}
+        {
+            "role": "assistant",
+            "content": "👋 **Welcome!** Ask me anything about your spending – for example, *‘How much did I spend on coffee this month?’*",
+        }
     ]
 
-# Display messages
+################################################################################
+# Sidebar – quick metrics
+################################################################################
+
+with st.sidebar:
+    st.markdown("### 📊 Quick snapshot")
+
+    # Load sample data (CSV bundled) or empty df
+    data_file = Path("sample_transactions.csv")
+    if data_file.exists():
+        df = pd.read_csv(data_file, parse_dates=["date"])
+    else:
+        df = pd.DataFrame(columns=["date", "amount", "category"])
+
+    if not df.empty:
+        current_month = df[df["date"].dt.to_period("M") == datetime.today().date().replace(day=1).strftime("%Y-%m")]
+        month_total = current_month["amount"].sum()
+        top_cat = (
+            current_month.groupby("category")["amount"].sum().sort_values(ascending=False).head(1).index[0]
+            if not current_month.empty else "–"
+        )
+
+        st.metric("This Month's Spend", f"${month_total:,.2f}")
+        st.metric("Top Category", top_cat)
+        st.metric("Transactions Analysed", f"{len(df):,}")
+    else:
+        st.info("No transaction data loaded yet.")
+
+    st.markdown("""---
+    Made with ❤️ by **Tapix** + **OpenAI**
+    """)
+
+################################################################################
+# Main chat area
+################################################################################
+
+st.markdown("## 💬 Chat with your finances", unsafe_allow_html=True)
+
+# Display message history
 for msg in st.session_state["messages"]:
-    bubble_class = "message-user" if msg["role"] == "user" else "message-ai"
-    st.markdown(f'<div class="chat-card {bubble_class}">{msg["content"]}</div>', unsafe_allow_html=True)
+    with st.chat_message(msg["role"]):
+        bubble_cls = "chat-user" if msg["role"] == "user" else "chat-assistant"
+        st.markdown(f'<div class="chat-bubble {bubble_cls}">{msg["content"]}</div>', unsafe_allow_html=True)
 
 # Chat input
-prompt = st.chat_input("Type your question...")
-if prompt:
-    st.session_state["messages"].append({"role": "user", "content": prompt})
-    # Call backend with full history
-    with st.spinner("Thinking..."):
-        try:
-            reply = generate_ai_response(st.session_state["messages"], extra_context={"transactions": transactions.to_dict("records")})
-        except Exception as e:
-            reply = "Sorry, I couldn’t reach the AI service right now."    
-    st.session_state["messages"].append({"role": "assistant", "content": reply})
-    st.experimental_rerun()
+prompt = st.chat_input("Type your question and press Enter…")
 
-###############################################################################
-# Footer hidden via CSS – nothing else needed
-###############################################################################
+if prompt:
+    # 1) Save user prompt
+    st.session_state["messages"].append({"role": "user", "content": prompt})
+
+    # 2) Display user bubble immediately
+    with st.chat_message("user"):
+        st.markdown(f'<div class="chat-bubble chat-user">{prompt}</div>', unsafe_allow_html=True)
+
+    # 3) Call backend AI in a spinner
+    with st.chat_message("assistant"):
+        with st.spinner("Thinking…"):
+            try:
+                reply = generate_ai_response(st.session_state["messages"])
+            except Exception:
+                reply = "⚠️ Sorry, I couldn’t reach the AI service right now. Please try again in a bit."
+
+        st.markdown(f'<div class="chat-bubble chat-assistant">{reply}</div>', unsafe_allow_html=True)
+
+    # 4) Save assistant reply & rerun to refresh history
+    st.session_state["messages"].append({"role": "assistant", "content": reply})
+    st.rerun()
+
+################################################################################
+# End of script
+################################################################################
