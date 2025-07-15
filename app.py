@@ -105,31 +105,40 @@ with st.sidebar:
         st.metric("Top Category", top_cat)
         st.metric("Transactions Analysed", f"{len(df):,}")
         
-        # Category breakdown as a pie chart in a glassmorphism container
+        # Category breakdown as an interactive pie chart in a glassmorphism container
         if not current_month.empty:
-            import matplotlib.pyplot as plt
-            import numpy as np
+            import plotly.express as px
             cat_summary = current_month.groupby("category")['amount'].sum().sort_values(ascending=False)
-            pastel_colors = [
-                '#a5d8ff', '#b2f2bb', '#ffd6a5', '#ffadad', '#cdb4db', '#b5ead7', '#f3c4fb', '#fdffb6', '#bdb2ff', '#b0efeb'
-            ]
-            fig, ax = plt.subplots(figsize=(5, 5), facecolor='none')
-            wedges, texts, autotexts = ax.pie(
-                cat_summary,
-                labels=cat_summary.index,
-                autopct="%1.1f%%",
-                startangle=90,
-                textprops={'color': '#1e293b', 'fontsize': 13},
-                colors=pastel_colors[:len(cat_summary)],
-                wedgeprops={'edgecolor': 'white', 'linewidth': 2}
+            # Prepare customdata for tooltips: list of transactions per category
+            customdata = []
+            for cat in cat_summary.index:
+                txs = current_month[current_month['category'] == cat]
+                tx_list = [f"{row['date'].strftime('%Y-%m-%d')}: ${row['amount']:.2f} - {row['description']}" for _, row in txs.iterrows()]
+                customdata.append('<br>'.join(tx_list))
+            fig = px.pie(
+                names=cat_summary.index,
+                values=cat_summary.values,
+                hole=0.3,
+                color_discrete_sequence=[
+                    '#a5d8ff', '#b2f2bb', '#ffd6a5', '#ffadad', '#cdb4db', '#b5ead7', '#f3c4fb', '#fdffb6', '#bdb2ff', '#b0efeb'
+                ]
             )
-            ax.axis("equal")
-            fig.patch.set_alpha(0.0)
-            ax.set_facecolor('none')
-            # Wrap heading and chart in glassmorphism container
+            fig.update_traces(
+                pull=[0.08]*len(cat_summary),
+                customdata=customdata,
+                hovertemplate="<b>%{label}</b><br>Amount: $%{value:,.2f}<br>Percent: %{percent}<br><br><b>Transactions:</b><br>%{customdata}<extra></extra>",
+                textinfo='label+percent',
+                marker=dict(line=dict(color='white', width=2))
+            )
+            fig.update_layout(
+                margin=dict(t=10, b=10, l=10, r=10),
+                showlegend=False,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)'
+            )
             st.markdown('<div class="glass-chart">', unsafe_allow_html=True)
             st.markdown("<h4 style='margin-top:0'>📈 Category Breakdown</h4>", unsafe_allow_html=True)
-            st.pyplot(fig, transparent=True)
+            st.plotly_chart(fig, use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
         else:
             st.info("No transactions for the selected month.")
