@@ -166,7 +166,7 @@ with tab1:
     ''' , unsafe_allow_html=True)
     for idx, q in enumerate(suggested_questions):
         st.markdown(
-            f'''<button type="submit" name="suggested" value="{q}" class="glass-button" style="background: #a5d8ff; color: #fff; border: none; border-radius: 16px; padding: 0.5rem 1.2rem; font-weight: 500; font-size: 1rem; margin-bottom: 0; margin-right: 0.5rem; margin-top: 0.2rem; margin-left: 0; box-shadow: 0 8px 32px 0 rgba(31,38,135,0.10); cursor: pointer;">{q}</button>''',
+            f'''<button type="submit" name="suggested" value="{q}" class="glass-button" style="background: var(--glass-bg); color: #fff; border: none; border-radius: 16px; padding: 0.5rem 1.2rem; font-weight: 500; font-size: 1rem; margin-bottom: 0; margin-right: 0.5rem; margin-top: 0.2rem; margin-left: 0; box-shadow: 0 8px 32px 0 rgba(31,38,135,0.10); cursor: pointer;">{q}</button>''',
             unsafe_allow_html=True
         )
     st.markdown('''</div></form>''', unsafe_allow_html=True)
