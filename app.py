@@ -149,7 +149,8 @@ tab1, tab2 = st.tabs(["💬 AI Chat", "📋 Transactions"])
 with tab1:
     st.markdown("## Chat with your finances", unsafe_allow_html=True)
 
-    # Suggested questions as clickable glassmorphism-styled buttons
+    # Suggested questions as fully custom HTML glassmorphism buttons
+    import streamlit.components.v1 as components
     suggested_questions = [
         "How much did I spend on groceries last month?",
         "What was my biggest expense in March?",
@@ -158,30 +159,65 @@ with tab1:
         "Are there any unusual transactions this week?",
         "How much did I spend at Starbucks?"
     ]
-    st.markdown('<div class="suggested-btn-row" style="display: flex; flex-wrap: wrap; gap: 0.5rem 0.5rem; margin-bottom: 1rem;">', unsafe_allow_html=True)
-    for q in suggested_questions:
-        if st.button(q, key=f"suggested_{q}"):
-            st.session_state["messages"].append({"role": "user", "content": q})
-            # Immediately process as chat (same as manual input)
-            try:
-                extra_context = {}
-                if not df.empty:
-                    extra_context = {
-                        "total_transactions": len(df),
-                        "date_range": f"{df['date'].min().strftime('%Y-%m-%d')} to {df['date'].max().strftime('%Y-%m-%d')}",
-                        "total_spent": f"${df['amount'].sum():,.2f}",
-                        "categories": df['category'].unique().tolist(),
-                        "recent_transactions": df.head(10).to_dict('records')
-                    }
-                reply = generate_ai_response(
-                    st.session_state["messages"],
-                    extra_context=extra_context
-                )
-            except Exception as e:
-                reply = f"<span style='color:red;'>⚠️ Sorry, I couldn't reach the AI service right now.<br>Error: {str(e)}</span>"
-            st.session_state["messages"].append({"role": "assistant", "content": reply})
-            st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Render as HTML buttons with a form
+    st.markdown('''
+    <form id="suggested-form">
+      <div class="suggested-btn-row" style="display: flex; flex-wrap: wrap; gap: 0.5rem 0.5rem; margin-bottom: 1rem;">
+    ''' , unsafe_allow_html=True)
+    for idx, q in enumerate(suggested_questions):
+        st.markdown(
+            f'''<button type="submit" name="suggested" value="{q}" class="glass-button" style="background: #a5d8ff; color: #fff; border: none; border-radius: 16px; padding: 0.5rem 1.2rem; font-weight: 500; font-size: 1rem; margin-bottom: 0; margin-right: 0.5rem; margin-top: 0.2rem; margin-left: 0; box-shadow: 0 8px 32px 0 rgba(31,38,135,0.10); cursor: pointer;">{q}</button>''',
+            unsafe_allow_html=True
+        )
+    st.markdown('''</div></form>''', unsafe_allow_html=True)
+
+    # JavaScript to capture which button was clicked and set a Streamlit variable
+    components.html('''
+    <script>
+    const form = window.parent.document.querySelector('#suggested-form');
+    if (form) {
+        form.onsubmit = function(e) {
+            e.preventDefault();
+            const btn = e.submitter;
+            if (btn && btn.value) {
+                window.parent.postMessage({type: 'streamlit:setComponentValue', value: btn.value}, '*');
+            }
+        }
+    }
+    window.addEventListener('message', (event) => {
+        if (event.data.type === 'streamlit:setComponentValue') {
+            window.parent.postMessage({isStreamlitMessage: true, type: 'streamlit:setComponentValue', value: event.data.value}, '*');
+        }
+    });
+    </script>
+    ''', height=0)
+
+    # Use Streamlit's session state to receive the value
+    if 'suggested_question' not in st.session_state:
+        st.session_state['suggested_question'] = ''
+    selected_question = st.experimental_get_query_params().get('suggested', [''])[0]
+    if selected_question:
+        st.session_state['suggested_question'] = selected_question
+        st.session_state["messages"].append({"role": "user", "content": selected_question})
+        try:
+            extra_context = {}
+            if not df.empty:
+                extra_context = {
+                    "total_transactions": len(df),
+                    "date_range": f"{df['date'].min().strftime('%Y-%m-%d')} to {df['date'].max().strftime('%Y-%m-%d')}",
+                    "total_spent": f"${df['amount'].sum():,.2f}",
+                    "categories": df['category'].unique().tolist(),
+                    "recent_transactions": df.head(10).to_dict('records')
+                }
+            reply = generate_ai_response(
+                st.session_state["messages"],
+                extra_context=extra_context
+            )
+        except Exception as e:
+            reply = f"<span style='color:red;'>⚠️ Sorry, I couldn't reach the AI service right now.<br>Error: {str(e)}</span>"
+        st.session_state["messages"].append({"role": "assistant", "content": reply})
+        st.experimental_set_query_params()  # Clear the param
+        st.rerun()
 
     # Display message history
     for msg in st.session_state["messages"]:
