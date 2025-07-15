@@ -73,16 +73,8 @@ if "df" not in st.session_state:
 with st.sidebar:
     st.markdown("### 📊 Quick snapshot")
 
-    # CSV upload feature
-    uploaded_file = st.file_uploader("Upload your transactions CSV", type=["csv"])
-    if uploaded_file:
-        try:
-            uploaded_df = pd.read_csv(uploaded_file, parse_dates=["date"])
-            st.session_state["df"] = uploaded_df
-            st.success("Transactions loaded!")
-        except Exception as e:
-            st.error(f"Failed to load CSV: {e}")
-
+    # Remove the CSV upload feature
+    # Only use the sample_transactions.csv file in the root folder
     df = st.session_state["df"]
 
     if not df.empty:
