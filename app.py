@@ -86,7 +86,9 @@ with st.sidebar:
     df = st.session_state["df"]
 
     if not df.empty:
-        current_month = df[df["date"].dt.to_period("M") == datetime.today().date().replace(day=1).strftime("%Y-%m")]
+        # Fix current month calculation
+        now_period = pd.Timestamp.now().to_period("M")
+        current_month = df[df["date"].dt.to_period("M") == now_period]
         month_total = current_month["amount"].sum()
         top_cat = (
             current_month.groupby("category")["amount"].sum().sort_values(ascending=False).head(1).index[0]
@@ -97,13 +99,15 @@ with st.sidebar:
         st.metric("Top Category", top_cat)
         st.metric("Transactions Analysed", f"{len(df):,}")
         
-        # Category breakdown
+        # Category breakdown as a pie chart
         st.markdown("### 📈 Category Breakdown")
         if not current_month.empty:
+            import matplotlib.pyplot as plt
             cat_summary = current_month.groupby("category")["amount"].sum().sort_values(ascending=False)
-            for cat, amt in cat_summary.items():
-                pct = (amt / month_total * 100) if month_total > 0 else 0
-                st.progress(pct / 100, text=f"{cat}: ${amt:.2f} ({pct:.1f}%)")
+            fig, ax = plt.subplots()
+            ax.pie(cat_summary, labels=cat_summary.index, autopct="%1.1f%%", startangle=90)
+            ax.axis("equal")
+            st.pyplot(fig)
     else:
         st.info("No transaction data loaded yet. Make sure 'sample_transactions.csv' exists.")
 
