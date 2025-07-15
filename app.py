@@ -86,10 +86,16 @@ with st.sidebar:
     df = st.session_state["df"]
 
     if not df.empty:
-        # Fix current month calculation
-        now_period = pd.Timestamp.now().to_period("M")
-        current_month = df[df["date"].dt.to_period("M") == now_period]
-        month_total = current_month["amount"].sum()
+        # Month selector
+        months = df["date"].dt.to_period("M").sort_values().unique()
+        current_period = pd.Timestamp.now().to_period("M")
+        month_strs = [str(m) for m in months]
+        default_index = month_strs.index(str(current_period)) if str(current_period) in month_strs else len(month_strs) - 1
+        selected_month = st.selectbox("Select Month", month_strs, index=default_index)
+        selected_period = pd.Period(selected_month)
+        current_month = df[df["date"].dt.to_period("M") == selected_period]
+
+        month_total = current_month["amount"].sum() if not current_month.empty else 0
         top_cat = (
             current_month.groupby("category")["amount"].sum().sort_values(ascending=False).head(1).index[0]
             if not current_month.empty else "–"
@@ -108,6 +114,8 @@ with st.sidebar:
             ax.pie(cat_summary, labels=cat_summary.index, autopct="%1.1f%%", startangle=90)
             ax.axis("equal")
             st.pyplot(fig)
+        else:
+            st.info("No transactions for the selected month.")
     else:
         st.info("No transaction data loaded yet. Make sure 'sample_transactions.csv' exists.")
 
