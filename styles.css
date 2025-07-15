@@ -611,13 +611,13 @@ h1, h2, h3, h4, h5, h6, [data-testid="metric-container"] label {
     padding: 0.7rem 0.7rem 0.3rem 0.7rem;
     margin-bottom: 0.7rem;
     margin-top: 0.3rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    align-items: stretch;
+    display: block;
+    flex-direction: unset;
+    gap: unset;
+    align-items: unset;
     min-height: unset;
-    /* max-height: 180px; */
-    /* overflow: hidden; */
+    max-height: unset;
+    overflow: visible;
 }
 
 .glass-metrics .stMetric {
@@ -677,21 +677,9 @@ div.suggested-btn-row button:active {
     box-shadow: var(--glass-shadow-hover) !important;
 }
 
-section[data-testid="stSidebar"] > div:first-of-type {
-    background: var(--glass-bg);
-    backdrop-filter: var(--backdrop-blur);
-    -webkit-backdrop-filter: var(--backdrop-blur);
-    border: 1px solid var(--glass-border);
-    border-radius: 20px;
-    box-shadow: var(--glass-shadow);
-    padding: 1.2rem 1rem 0.7rem 1rem;
-    margin-bottom: 0.7rem;
-    margin-top: 0.3rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    align-items: stretch;
-    min-height: unset;
-    max-height: 220px;
-    overflow: hidden;
+section[data-testid="stSidebar"] {
+    min-width: 350px !important;
+    width: 350px !important;
+    max-width: 100vw !important;
+    overflow: visible !important;
 }
