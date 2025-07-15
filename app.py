@@ -158,43 +158,56 @@ with tab1:
         "Are there any unusual transactions this week?",
         "How much did I spend at Starbucks?"
     ]
-    with st.form("suggested_questions_form"):
-        st.markdown('<div style="display: flex; flex-wrap: wrap; gap: 0.5rem 0.5rem; margin-bottom: 1rem;">', unsafe_allow_html=True)
-        for idx, q in enumerate(suggested_questions):
-            st.markdown(f'<button type="submit" name="suggested" value="{q}" class="glass-button" style="margin-bottom:0;">{q}</button>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-        submitted = st.form_submit_button(" ", help="Click a question to ask it")
-        import streamlit as st
-        import urllib.parse
-        import sys
-        if submitted and st.session_state.get('suggested'):
-            q = st.session_state['suggested']
-            st.session_state["messages"].append({"role": "user", "content": q})
-            # Display user bubble immediately
-            with st.chat_message("user"):
-                st.markdown(f'<div class="chat-bubble chat-user">{q}</div>', unsafe_allow_html=True)
-            # Call backend AI in a spinner, passing transaction data as context
-            with st.chat_message("assistant"):
-                with st.spinner("Thinking…"):
-                    try:
-                        extra_context = {}
-                        if not df.empty:
-                            extra_context = {
-                                "total_transactions": len(df),
-                                "date_range": f"{df['date'].min().strftime('%Y-%m-%d')} to {df['date'].max().strftime('%Y-%m-%d')}",
-                                "total_spent": f"${df['amount'].sum():,.2f}",
-                                "categories": df['category'].unique().tolist(),
-                                "recent_transactions": df.head(10).to_dict('records')
-                            }
-                        reply = generate_ai_response(
-                            st.session_state["messages"],
-                            extra_context=extra_context
-                        )
-                    except Exception as e:
-                        reply = f"<span style='color:red;'>⚠️ Sorry, I couldn't reach the AI service right now.<br>Error: {str(e)}</span>"
-                st.markdown(f'<div class="chat-bubble chat-assistant">{reply}</div>', unsafe_allow_html=True)
-            st.session_state["messages"].append({"role": "assistant", "content": reply})
-            st.rerun()
+    import streamlit.components.v1 as components
+    import uuid
+    # Use a hidden input to capture which button was pressed
+    st.markdown('<div style="display: flex; flex-wrap: wrap; gap: 0.5rem 0.5rem; margin-bottom: 1rem;">', unsafe_allow_html=True)
+    for idx, q in enumerate(suggested_questions):
+        button_id = f"glassbtn_{uuid.uuid4().hex}"
+        components.html(f'''
+            <form action="" method="post" style="display:inline;">
+                <input type="hidden" name="suggested_input" value="{q}">
+                <button type="submit" class="glass-button" style="margin-bottom:0;">{q}</button>
+            </form>
+        ''', height=40)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Check for form submission in query params
+    import streamlit as st
+    import urllib.parse
+    import os
+    import sys
+    import re
+    from urllib.parse import parse_qs
+    if 'suggested_input' in st.experimental_get_query_params():
+        q = st.experimental_get_query_params()['suggested_input'][0]
+        st.session_state["messages"].append({"role": "user", "content": q})
+        # Display user bubble immediately
+        with st.chat_message("user"):
+            st.markdown(f'<div class="chat-bubble chat-user">{q}</div>', unsafe_allow_html=True)
+        # Call backend AI in a spinner, passing transaction data as context
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking…"):
+                try:
+                    extra_context = {}
+                    if not df.empty:
+                        extra_context = {
+                            "total_transactions": len(df),
+                            "date_range": f"{df['date'].min().strftime('%Y-%m-%d')} to {df['date'].max().strftime('%Y-%m-%d')}",
+                            "total_spent": f"${df['amount'].sum():,.2f}",
+                            "categories": df['category'].unique().tolist(),
+                            "recent_transactions": df.head(10).to_dict('records')
+                        }
+                    reply = generate_ai_response(
+                        st.session_state["messages"],
+                        extra_context=extra_context
+                    )
+                except Exception as e:
+                    reply = f"<span style='color:red;'>⚠️ Sorry, I couldn't reach the AI service right now.<br>Error: {str(e)}</span>"
+            st.markdown(f'<div class="chat-bubble chat-assistant">{reply}</div>', unsafe_allow_html=True)
+        st.session_state["messages"].append({"role": "assistant", "content": reply})
+        st.experimental_set_query_params()  # Clear the param
+        st.rerun()
 
     # Display message history
     for msg in st.session_state["messages"]:
