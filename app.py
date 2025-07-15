@@ -73,6 +73,11 @@ if "df" not in st.session_state:
 with st.sidebar:
     # Remove the '📊 Quick snapshot' and 'Select Month' labels
     df = st.session_state["df"]
+    # Debug: Show the first few rows of the DataFrame
+    st.write('**DEBUG: DataFrame Preview**')
+    st.write(df.head())
+    if df.empty:
+        st.warning('No data loaded from sample_transactions.csv. Please check the file.')
 
     if not df.empty:
         st.markdown('<div class="glass-metrics">', unsafe_allow_html=True)
