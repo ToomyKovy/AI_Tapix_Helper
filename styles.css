@@ -600,3 +600,23 @@ h1, h2, h3, h4, h5, h6, [data-testid="metric-container"] label {
     justify-content: center;
     align-items: center;
 }
+
+.glass-metrics {
+    background: var(--glass-bg);
+    backdrop-filter: var(--backdrop-blur);
+    -webkit-backdrop-filter: var(--backdrop-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    box-shadow: var(--glass-shadow);
+    padding: 1.2rem 1rem 0.7rem 1rem;
+    margin-bottom: 1.5rem;
+    margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    align-items: stretch;
+}
+
+.glass-metrics .stMetric {
+    margin-bottom: 0.2rem;
+}

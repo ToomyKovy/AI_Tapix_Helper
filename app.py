@@ -101,9 +101,12 @@ with st.sidebar:
             if not current_month.empty else "–"
         )
 
+        # Metrics in a glassmorphism container
+        st.markdown('<div class="glass-metrics">', unsafe_allow_html=True)
         st.metric("This Month's Spend", f"${month_total:,.2f}")
         st.metric("Top Category", top_cat)
         st.metric("Transactions Analysed", f"{len(df):,}")
+        st.markdown('</div>', unsafe_allow_html=True)
         
         # Category breakdown as an interactive pie chart in a glassmorphism container
         if not current_month.empty:
