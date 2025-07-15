@@ -651,3 +651,28 @@ h1, h2, h3, h4, h5, h6, .glass-metrics-heading, .glass-chart h4 {
     color: #fff !important;
     text-shadow: 0 2px 8px rgba(31,38,135,0.10), 0 1px 2px rgba(0,0,0,0.04);
 }
+
+.suggested-btn-row .stButton > button {
+    background: var(--glass-bg);
+    backdrop-filter: var(--backdrop-blur);
+    -webkit-backdrop-filter: var(--backdrop-blur);
+    border: 1px solid var(--glass-border);
+    color: #fff;
+    border-radius: 16px;
+    padding: 0.5rem 1.2rem;
+    font-weight: 500;
+    font-size: 1rem;
+    box-shadow: var(--glass-shadow);
+    margin-bottom: 0;
+    margin-right: 0.5rem;
+    margin-top: 0.2rem;
+    margin-left: 0;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+.suggested-btn-row .stButton > button:hover {
+    background: rgba(124, 58, 237, 0.1);
+    border-color: rgba(124, 58, 237, 0.3);
+    transform: translateY(-2px);
+    box-shadow: var(--glass-shadow-hover);
+}
