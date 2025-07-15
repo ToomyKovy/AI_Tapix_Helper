@@ -195,7 +195,7 @@ with tab1:
     # Use Streamlit's session state to receive the value
     if 'suggested_question' not in st.session_state:
         st.session_state['suggested_question'] = ''
-    selected_question = st.experimental_get_query_params().get('suggested', [''])[0]
+    selected_question = st.query_params.get('suggested', [''])[0]
     if selected_question:
         st.session_state['suggested_question'] = selected_question
         st.session_state["messages"].append({"role": "user", "content": selected_question})
@@ -216,7 +216,7 @@ with tab1:
         except Exception as e:
             reply = f"<span style='color:red;'>⚠️ Sorry, I couldn't reach the AI service right now.<br>Error: {str(e)}</span>"
         st.session_state["messages"].append({"role": "assistant", "content": reply})
-        st.experimental_set_query_params()  # Clear the param
+        st.query_params.clear()  # Clear the param
         st.rerun()
 
     # Display message history
