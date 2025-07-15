@@ -75,33 +75,31 @@ with st.sidebar:
     df = st.session_state["df"]
 
     if not df.empty:
-        st.markdown("<!--SNAPSHOT-START-->")  # Unique marker for CSS targeting
-        with st.container():
-            st.markdown('<div class="glass-metrics-heading">Quick Snapshot</div>', unsafe_allow_html=True)
-            months = df["date"].dt.to_period("M").sort_values().unique()
-            current_period = pd.Timestamp.now().to_period("M")
-            month_strs = [str(m) for m in months]
-            default_index = month_strs.index(str(current_period)) if str(current_period) in month_strs else len(month_strs) - 1
-            selected_month = st.selectbox("", month_strs, index=default_index, label_visibility="collapsed")
-            selected_period = pd.Period(selected_month)
-            current_month = df[df["date"].dt.to_period("M") == selected_period]
+        st.markdown('<div class="glass-metrics">', unsafe_allow_html=True)
+        st.markdown('<div class="glass-metrics-heading">Quick Snapshot</div>', unsafe_allow_html=True)
+        months = df["date"].dt.to_period("M").sort_values().unique()
+        current_period = pd.Timestamp.now().to_period("M")
+        month_strs = [str(m) for m in months]
+        default_index = month_strs.index(str(current_period)) if str(current_period) in month_strs else len(month_strs) - 1
+        selected_month = st.selectbox("", month_strs, index=default_index, label_visibility="collapsed")
+        selected_period = pd.Period(selected_month)
+        current_month = df[df["date"].dt.to_period("M") == selected_period]
 
-            month_total = current_month["amount"].sum() if not current_month.empty else 0
-            top_cat = (
-                current_month.groupby("category")["amount"].sum().sort_values(ascending=False).head(1).index[0]
-                if not current_month.empty else "–"
-            )
+        month_total = current_month["amount"].sum() if not current_month.empty else 0
+        top_cat = (
+            current_month.groupby("category")["amount"].sum().sort_values(ascending=False).head(1).index[0]
+            if not current_month.empty else "–"
+        )
 
-            st.metric("This Month's Spend", f"${month_total:,.2f}")
-            st.metric("Top Category", top_cat)
-            st.metric("Transactions Analysed", f"{len(df):,}")
-        st.markdown("<!--SNAPSHOT-END-->")
-        
+        st.metric("This Month's Spend", f"${month_total:,.2f}")
+        st.metric("Top Category", top_cat)
+        st.metric("Transactions Analysed", f"{len(df):,}")
+        st.markdown('</div>', unsafe_allow_html=True)
+
         # Category breakdown as an interactive pie chart in a glassmorphism container
         if not current_month.empty:
             import plotly.express as px
             cat_summary = current_month.groupby("category")['amount'].sum().sort_values(ascending=False)
-            # Prepare customdata for tooltips: list of transactions per category
             customdata = []
             for cat in cat_summary.index:
                 txs = current_month[current_month['category'] == cat]
