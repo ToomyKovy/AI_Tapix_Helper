@@ -179,8 +179,8 @@ with tab1:
     import sys
     import re
     from urllib.parse import parse_qs
-    if 'suggested_input' in st.experimental_get_query_params():
-        q = st.experimental_get_query_params()['suggested_input'][0]
+    if 'suggested_input' in st.query_params:
+        q = st.query_params['suggested_input'][0]
         st.session_state["messages"].append({"role": "user", "content": q})
         # Display user bubble immediately
         with st.chat_message("user"):
@@ -206,7 +206,7 @@ with tab1:
                     reply = f"<span style='color:red;'>⚠️ Sorry, I couldn't reach the AI service right now.<br>Error: {str(e)}</span>"
             st.markdown(f'<div class="chat-bubble chat-assistant">{reply}</div>', unsafe_allow_html=True)
         st.session_state["messages"].append({"role": "assistant", "content": reply})
-        st.experimental_set_query_params()  # Clear the param
+        st.query_params.clear()  # Clear the param
         st.rerun()
 
     # Display message history
