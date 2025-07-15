@@ -109,19 +109,26 @@ with st.sidebar:
         st.markdown("### 📈 Category Breakdown")
         if not current_month.empty:
             import matplotlib.pyplot as plt
-            cat_summary = current_month.groupby("category")["amount"].sum().sort_values(ascending=False)
-            fig, ax = plt.subplots()
-            ax.pie(cat_summary, labels=cat_summary.index, autopct="%1.1f%%", startangle=90)
+            cat_summary = current_month.groupby("category")['amount'].sum().sort_values(ascending=False)
+            fig, ax = plt.subplots(figsize=(4, 4), facecolor='none')
+            wedges, texts, autotexts = ax.pie(
+                cat_summary,
+                labels=cat_summary.index,
+                autopct="%1.1f%%",
+                startangle=90,
+                textprops={'color': '#1e293b', 'fontsize': 12}
+            )
             ax.axis("equal")
-            st.pyplot(fig)
+            fig.patch.set_alpha(0.0)
+            ax.set_facecolor('none')
+            # Wrap in glassmorphism container
+            st.markdown('<div class="glass-chart">', unsafe_allow_html=True)
+            st.pyplot(fig, transparent=True)
+            st.markdown('</div>', unsafe_allow_html=True)
         else:
             st.info("No transactions for the selected month.")
     else:
         st.info("No transaction data loaded yet. Make sure 'sample_transactions.csv' exists.")
-
-    st.markdown("""---
-    Made with ❤️ by **Tapix** + **OpenAI**
-    """)
 
 ################################################################################
 # Main area with tabs

@@ -585,3 +585,18 @@ h1, h2, h3, h4, h5, h6, [data-testid="metric-container"] label {
         text-shadow: none !important;
     }
 }
+
+.glass-chart {
+    background: var(--glass-bg);
+    backdrop-filter: var(--backdrop-blur);
+    -webkit-backdrop-filter: var(--backdrop-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    box-shadow: var(--glass-shadow);
+    padding: 1.5rem 1rem;
+    margin-bottom: 1.5rem;
+    margin-top: 0.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
