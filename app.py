@@ -71,15 +71,9 @@ if "df" not in st.session_state:
 ################################################################################
 
 with st.sidebar:
-    # Remove the '📊 Quick snapshot' and 'Select Month' labels
     df = st.session_state["df"]
-    # Debug: Show the first few rows of the DataFrame
-    st.write('**DEBUG: DataFrame Preview**')
-    st.write(df.head())
-    if df.empty:
-        st.warning('No data loaded from sample_transactions.csv. Please check the file.')
-
     if not df.empty:
+        # Glassmorphism box for snapshot
         st.markdown('<div class="glass-metrics">', unsafe_allow_html=True)
         st.markdown('<div class="glass-metrics-heading">Quick Snapshot</div>', unsafe_allow_html=True)
         months = df["date"].dt.to_period("M").sort_values().unique()
@@ -95,13 +89,12 @@ with st.sidebar:
             current_month.groupby("category")["amount"].sum().sort_values(ascending=False).head(1).index[0]
             if not current_month.empty else "–"
         )
-
         st.metric("This Month's Spend", f"${month_total:,.2f}")
         st.metric("Top Category", top_cat)
-        st.metric("Transactions Analysed", f"{len(df):,}")
+        st.metric("Transactions Analysed", f"{len(current_month):,}")
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # Category breakdown as an interactive pie chart in a glassmorphism container
+        # Glassmorphism box for pie chart
         if not current_month.empty:
             import plotly.express as px
             cat_summary = current_month.groupby("category")['amount'].sum().sort_values(ascending=False)
@@ -135,8 +128,8 @@ with st.sidebar:
             st.markdown("<h4 style='margin-top:0'>📈 Category Breakdown</h4>", unsafe_allow_html=True)
             st.plotly_chart(fig, use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
-        # Do not render any container or heading if current_month is empty
-    # Removed st.info for no transaction data loaded
+    else:
+        st.warning('No data loaded from sample_transactions.csv. Please check the file.')
 
 ################################################################################
 # Main area with tabs
