@@ -149,7 +149,7 @@ tab1, tab2 = st.tabs(["💬 AI Chat", "📋 Transactions"])
 with tab1:
     st.markdown("## Chat with your finances", unsafe_allow_html=True)
 
-    # Suggested questions as clickable glassmorphism buttons
+    # Suggested questions as clickable glassmorphism HTML buttons
     suggested_questions = [
         "How much did I spend on groceries last month?",
         "What was my biggest expense in March?",
@@ -158,9 +158,17 @@ with tab1:
         "Are there any unusual transactions this week?",
         "How much did I spend at Starbucks?"
     ]
-    st.markdown('<div style="display: flex; flex-wrap: wrap; gap: 0.5rem 0.5rem; margin-bottom: 1rem;">', unsafe_allow_html=True)
-    for q in suggested_questions:
-        if st.button(q, key=f"suggested_{q}", help="Click to ask this question", use_container_width=False):
+    with st.form("suggested_questions_form"):
+        st.markdown('<div style="display: flex; flex-wrap: wrap; gap: 0.5rem 0.5rem; margin-bottom: 1rem;">', unsafe_allow_html=True)
+        for idx, q in enumerate(suggested_questions):
+            st.markdown(f'<button type="submit" name="suggested" value="{q}" class="glass-button" style="margin-bottom:0;">{q}</button>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        submitted = st.form_submit_button(" ", help="Click a question to ask it")
+        import streamlit as st
+        import urllib.parse
+        import sys
+        if submitted and st.session_state.get('suggested'):
+            q = st.session_state['suggested']
             st.session_state["messages"].append({"role": "user", "content": q})
             # Display user bubble immediately
             with st.chat_message("user"):
@@ -187,7 +195,6 @@ with tab1:
                 st.markdown(f'<div class="chat-bubble chat-assistant">{reply}</div>', unsafe_allow_html=True)
             st.session_state["messages"].append({"role": "assistant", "content": reply})
             st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
 
     # Display message history
     for msg in st.session_state["messages"]:
