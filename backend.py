@@ -1,118 +1,113 @@
-"""backend.py – OpenAI backend for Tapix AI assistant
-=================================================
+"""backend.py – OpenAI (>=1.0) backend for Tapix AI assistant
+===========================================================
 
-Provides a single `generate_ai_response()` function that calls the OpenAI
-Chat Completion endpoint so your Streamlit app can answer **any** question,
-not just the few hard‑coded examples.
+This version uses **openai‑python v1.x** (the current library) instead of the
+legacy `openai.ChatCompletion`.  Drop it next to *app.py*, push, and redeploy.
 
-Usage
------
+Environment variables expected
+-----------------------------
+OPENAI_API_KEY   – required, your secret key
+OPENAI_MODEL     – optional, default ``gpt-4o-mini``
 
-1.  Add `openai` to your **requirements.txt** if it’s not there yet.
-2.  Set an environment variable named **OPENAI_API_KEY** (and optionally
-    **OPENAI_MODEL**, default is `gpt-4o-mini`).
-3.  In `app.py` just do:
-
-    ```python
-    from backend import generate_ai_response
-    assistant_reply = generate_ai_response(st.session_state["messages"],
-                                           extra_context={"transactions": transactions.to_dict("records")})
-    ```
-
-That’s it – the function returns the assistant’s reply as a plain string.
+Usage (inside app.py)
+---------------------
+```python
+from backend import generate_ai_response
+assistant_reply = generate_ai_response(session_messages)
+```
 """
-
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, List
+from typing import List, Dict, Any, Optional
 
 try:
-    import openai
+    # openai ≥ 1.0 interface
+    from openai import OpenAI, OpenAIError  # type: ignore
 except ImportError as exc:  # pragma: no cover
     raise ImportError(
-        "The 'openai' package is not installed. "
-        "Add 'openai' to your requirements.txt or run 'pip install openai' locally."
+        "The 'openai' package is not installed. Add 'openai' to your "
+        "requirements.txt or run 'pip install openai' locally."
     ) from exc
 
-# -----------------------------------------------------------------------------
-# Configuration
-# -----------------------------------------------------------------------------
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if OPENAI_API_KEY:
-    openai.api_key = OPENAI_API_KEY
+# ----------------------------------------------------------------------------------
+# Configuration helpers
+# ----------------------------------------------------------------------------------
+
+def _get_client() -> OpenAI:
+    """Return an OpenAI client configured from env‑vars."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise RuntimeError(
+            "Missing OPENAI_API_KEY environment variable. Set it in your deploy "
+            "settings or locally via `export OPENAI_API_KEY=...`."
+        )
+    return OpenAI(api_key=api_key)
+
 
 DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", "0.3"))
-
 SYSTEM_PROMPT = (
-    "You are Tapix, a friendly personal‑finance assistant. "
-    "You can explain spending patterns, budgeting tips, and transaction details "
-    "in clear, helpful language. When data is missing, politely say you don't know."
+    "You are Tapix‑AI, an expert personal finance assistant who can explain "
+    "transactions, spot anomalies, and give budgeting tips in simple language."
 )
 
-
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------
 # Public API
-# -----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------
 
 def generate_ai_response(
     chat_history: List[Dict[str, str]],
     *,
-    extra_context: Dict[str, Any] | None = None,
-    temperature: float = TEMPERATURE,
+    extra_context: Optional[Dict[str, Any]] = None,
+    model: str = DEFAULT_MODEL,
+    max_tokens: int = 512,
+    temperature: float = 0.4,
 ) -> str:
-    """Return the assistant's reply given the conversation *chat_history*.
+    """Return assistant reply for the given **chat_history**.
 
     Parameters
     ----------
     chat_history
-        A **list** of `{\"role\": ..., \"content\": ...}` messages that already
-        includes the user's latest message.
+        List of {"role": "user"|"assistant"|"system", "content": str} dicts.
     extra_context
-        Optional extra structured data (e.g. Tapix‑cleaned transactions) to pass
-        inside a hidden system message.
-    temperature
-        Sampling temperature for the model (0–2).
-
-    Returns
-    -------
-    str
-        The assistant's reply ready to display in Streamlit.
+        Optional dict merged into the system prompt (e.g. Tapix data).
+    model, max_tokens, temperature
+        Usual OpenAI generation knobs.
     """
+    client = _get_client()
 
-    if not OPENAI_API_KEY:
-        return (
-            "⚠️ Your OpenAI key isn't set. Add OPENAI_API_KEY as an environment "
-            "variable or Streamlit secret and re‑run the app."
-        )
-
-    # ---- Build the message list --------------------------------------------
+    # ----- Build full message list -------------------------------------------------
     messages: List[Dict[str, str]] = [
-        {"role": "system", "content": SYSTEM_PROMPT}
-    ]
+        {"role": "system", "content": _build_system_prompt(extra_context)},
+    ] + chat_history
 
-    if extra_context is not None:
-        messages.append(
-            {
-                "role": "system",
-                "content": "EXTRA_CONTEXT:\n" + str(extra_context),
-            }
-        )
-
-    # Append the rest of the history (skip any existing system prompts)
-    for m in chat_history:
-        if m["role"] != "system":
-            messages.append(m)
-
-    # ---- Call OpenAI --------------------------------------------------------
     try:
-        response = openai.ChatCompletion.create(
-            model=DEFAULT_MODEL,
-            messages=messages,
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,  # type: ignore[arg-type]
+            max_tokens=max_tokens,
             temperature=temperature,
         )
-    except Exception as exc:  # pragma: no cover
-        return f"🚨 OpenAI API error: {exc}"
+    except OpenAIError as e:  # pragma: no cover
+        return (
+            "⚠️ Sorry, I ran into an error talking to OpenAI: "
+            f"{e.__class__.__name__}: {e}.  Please try again later."
+        )
 
     return response.choices[0].message.content.strip()
+
+
+# ----------------------------------------------------------------------------------
+# Helpers
+# ----------------------------------------------------------------------------------
+
+def _build_system_prompt(extra: Optional[Dict[str, Any]]) -> str:
+    """Merge **extra** context into the SYSTEM_PROMPT."""
+    if not extra:
+        return SYSTEM_PROMPT
+
+    context_lines = ["Here is additional context you can use:"]
+    for key, value in extra.items():
+        context_lines.append(f"- {key}: {value}")
+
+    return f"{SYSTEM_PROMPT}\n\n" + "\n".join(context_lines)
