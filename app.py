@@ -105,24 +105,30 @@ with st.sidebar:
         st.metric("Top Category", top_cat)
         st.metric("Transactions Analysed", f"{len(df):,}")
         
-        # Category breakdown as a pie chart
-        st.markdown("### 📈 Category Breakdown")
+        # Category breakdown as a pie chart in a glassmorphism container
         if not current_month.empty:
             import matplotlib.pyplot as plt
+            import numpy as np
             cat_summary = current_month.groupby("category")['amount'].sum().sort_values(ascending=False)
-            fig, ax = plt.subplots(figsize=(4, 4), facecolor='none')
+            pastel_colors = [
+                '#a5d8ff', '#b2f2bb', '#ffd6a5', '#ffadad', '#cdb4db', '#b5ead7', '#f3c4fb', '#fdffb6', '#bdb2ff', '#b0efeb'
+            ]
+            fig, ax = plt.subplots(figsize=(5, 5), facecolor='none')
             wedges, texts, autotexts = ax.pie(
                 cat_summary,
                 labels=cat_summary.index,
                 autopct="%1.1f%%",
                 startangle=90,
-                textprops={'color': '#1e293b', 'fontsize': 12}
+                textprops={'color': '#1e293b', 'fontsize': 13},
+                colors=pastel_colors[:len(cat_summary)],
+                wedgeprops={'edgecolor': 'white', 'linewidth': 2}
             )
             ax.axis("equal")
             fig.patch.set_alpha(0.0)
             ax.set_facecolor('none')
-            # Wrap in glassmorphism container
+            # Wrap heading and chart in glassmorphism container
             st.markdown('<div class="glass-chart">', unsafe_allow_html=True)
+            st.markdown("<h4 style='margin-top:0'>📈 Category Breakdown</h4>", unsafe_allow_html=True)
             st.pyplot(fig, transparent=True)
             st.markdown('</div>', unsafe_allow_html=True)
         else:
