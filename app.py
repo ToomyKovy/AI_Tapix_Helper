@@ -1,8 +1,8 @@
-"""app.py – Tapix AI Finance Assistant (premium Streamlit UI)
+"""app.py – Tapix AI Finance Assistant (premium Streamlit UI)
 ================================================================
-A polished Streamlit front‑end that chats with `backend.py` (OpenAI v1)
+A polished Streamlit front‑end that chats with `backend.py` (OpenAI v1)
 while showing instant spending metrics. Uses **st.rerun()** – compatible
-with Streamlit ≥ 1.27.  Drop the file in your repo, push, and redeploy.
+with Streamlit ≥ 1.27.  Drop the file in your repo, push, and redeploy.
 
 Deploy on Streamlit Cloud:
     1. Add your OPENAI_API_KEY in Secrets.
@@ -33,44 +33,41 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# --- Load External CSS ---------------------------------------------------------
-def load_css(file_path: str = "styles.css") -> str:
-    """Load CSS from external file with fallback to basic styles."""
-    css_file = Path(file_path)
-    
-    if css_file.exists():
-        return css_file.read_text()
-    else:
-        # Fallback CSS if external file doesn't exist
-        return """
-        <style>
-        html, body, [class*="stApp"] {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #f5f7fa;
-        }
-        .chat-bubble {
-            border-radius: 1rem;
-            padding: 1rem;
-            margin-bottom: 0.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .chat-user {
-            background: #e3f2fd;
-            margin-left: auto;
-            max-width: 80%;
-        }
-        .chat-assistant {
-            background: #ffffff;
-            margin-right: auto;
-            max-width: 80%;
-        }
-        footer {visibility: hidden;}
-        </style>
-        """
+# --- Custom CSS ----------------------------------------------------------------
+# Glassmorphism cards + modern font + muted background
+CUSTOM_CSS = """
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+html, body, [class*="stApp"] {
+    font-family: 'Inter', sans-serif;
+    background: radial-gradient(circle at top left, #f5f7fa 0%, #e8eef7 35%, #e5ecf6 100%);
+    color: #222;
+}
 
-# Apply CSS
-css_content = load_css()
-st.markdown(f"<style>{css_content}</style>", unsafe_allow_html=True)
+/* Hide default Streamlit footer */
+footer {visibility: hidden;}
+
+/* Hide hamburger menu */
+header [data-testid="stToolbar"] {display: none !important;}
+
+/* Chat bubble containers */
+.chat-bubble {
+    border-radius: 1.25rem;
+    padding: 1rem 1.2rem;
+    margin-bottom: .75rem;
+    box-shadow: 0 8px 24px rgb(0 0 0 / .05);
+    backdrop-filter: blur(10px);
+}
+.chat-user {
+    background: rgba(123, 76, 255, .15);
+}
+.chat-assistant {
+    background: rgba(255, 255, 255, .60);
+}
+</style>
+"""
+
+st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
 
 ################################################################################
 # Session state initialisation
@@ -80,7 +77,7 @@ if "messages" not in st.session_state:
     st.session_state["messages"] = [
         {
             "role": "assistant",
-            "content": "👋 **Welcome!** Ask me anything about your spending – for example, *'How much did I spend on coffee this month?'*",
+            "content": "👋 **Welcome!** Ask me anything about your spending – for example, *‘How much did I spend on coffee this month?’*",
         }
     ]
 
@@ -145,7 +142,7 @@ if prompt:
             try:
                 reply = generate_ai_response(st.session_state["messages"])
             except Exception:
-                reply = "⚠️ Sorry, I couldn't reach the AI service right now. Please try again in a bit."
+                reply = "⚠️ Sorry, I couldn’t reach the AI service right now. Please try again in a bit."
 
         st.markdown(f'<div class="chat-bubble chat-assistant">{reply}</div>', unsafe_allow_html=True)
 

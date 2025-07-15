@@ -4,10 +4,10 @@
 This version uses **openai‑python v1.x** (the current library) instead of the
 legacy `openai.ChatCompletion`.  Drop it next to *app.py*, push, and redeploy.
 
-Environment variables expected
------------------------------
-OPENAI_API_KEY   – required, your secret key
-OPENAI_MODEL     – optional, default ``gpt-4o-mini``
+Streamlit Cloud setup
+---------------------
+Set ``OPENAI_API_KEY`` via the Secrets manager or as an env var.
+``OPENAI_MODEL`` – optional, default ``gpt-4o-mini``.
 
 Usage (inside app.py)
 ---------------------
@@ -35,12 +35,11 @@ except ImportError as exc:  # pragma: no cover
 # ----------------------------------------------------------------------------------
 
 def _get_client() -> OpenAI:
-    """Return an OpenAI client configured from env‑vars."""
-    api_key = os.getenv("OPENAI_API_KEY")
+    """Return an OpenAI client using env vars or Streamlit secrets."""
+    api_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError(
-            "Missing OPENAI_API_KEY environment variable. Set it in your deploy "
-            "settings or locally via `export OPENAI_API_KEY=...`."
+            "Missing OPENAI_API_KEY. Add it via Streamlit secrets or set the environment variable."
         )
     return OpenAI(api_key=api_key)
 
