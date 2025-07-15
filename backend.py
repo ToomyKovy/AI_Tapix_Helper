@@ -1,127 +1,118 @@
-"""backend.py – OpenAI chat backend for the Tapix Streamlit prototype
-=====================================================================
-Provides a single `generate_ai_response()` function that can be imported from
-`app.py`.  You only need to set the **OPENAI_API_KEY** environment variable (and
-optionally **OPENAI_MODEL**) before launching the Streamlit app.
+"""backend.py – OpenAI backend for Tapix AI assistant
+=================================================
 
-Example on macOS/Linux
-----------------------
-```
-export OPENAI_API_KEY="sk‑..."
-streamlit run app.py
-```
+Provides a single `generate_ai_response()` function that calls the OpenAI
+Chat Completion endpoint so your Streamlit app can answer **any** question,
+not just the few hard‑coded examples.
 
-The helper is intentionally stateless aside from the passed‑in chat history, so
-it remains easy to swap in another provider or add advanced features (tool
-calling, streaming, etc.) later.
+Usage
+-----
+
+1.  Add `openai` to your **requirements.txt** if it’s not there yet.
+2.  Set an environment variable named **OPENAI_API_KEY** (and optionally
+    **OPENAI_MODEL**, default is `gpt-4o-mini`).
+3.  In `app.py` just do:
+
+    ```python
+    from backend import generate_ai_response
+    assistant_reply = generate_ai_response(st.session_state["messages"],
+                                           extra_context={"transactions": transactions.to_dict("records")})
+    ```
+
+That’s it – the function returns the assistant’s reply as a plain string.
 """
+
 from __future__ import annotations
 
 import os
-import sys
-import logging
-from typing import List, Dict, TypedDict, Sequence
+from typing import Any, Dict, List
 
-import openai
+try:
+    import openai
+except ImportError as exc:  # pragma: no cover
+    raise ImportError(
+        "The 'openai' package is not installed. "
+        "Add 'openai' to your requirements.txt or run 'pip install openai' locally."
+    ) from exc
 
-logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Configuration
-# ---------------------------------------------------------------------------
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# -----------------------------------------------------------------------------
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if OPENAI_API_KEY:
+    openai.api_key = OPENAI_API_KEY
+
 DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-MAX_TOKENS = int(os.getenv("OPENAI_MAX_TOKENS", "512"))
 TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", "0.3"))
 
 SYSTEM_PROMPT = (
-    "You are Tapix, a concise and friendly AI financial assistant. "
-    "You help users understand their personal finances by analysing their "
-    "bank transactions, spotting trends, and offering clear, actionable advice."
+    "You are Tapix, a friendly personal‑finance assistant. "
+    "You can explain spending patterns, budgeting tips, and transaction details "
+    "in clear, helpful language. When data is missing, politely say you don't know."
 )
 
 
-# ---------------------------------------------------------------------------
-# Types
-# ---------------------------------------------------------------------------
-class ChatMessage(TypedDict):
-    role: str
-    content: str
-
-# If you prefer a simpler alias:
-ChatHistory = Sequence[ChatMessage]
-
-
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Public API
-# ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-def generate_ai_response(user_message: str, chat_history: ChatHistory | None = None) -> str:
-    """Return a model‑generated reply based on the conversation so far.
+def generate_ai_response(
+    chat_history: List[Dict[str, str]],
+    *,
+    extra_context: Dict[str, Any] | None = None,
+    temperature: float = TEMPERATURE,
+) -> str:
+    """Return the assistant's reply given the conversation *chat_history*.
 
     Parameters
     ----------
-    user_message : str
-        The latest human message.
-    chat_history : Sequence[ChatMessage] | None
-        Prior messages in OpenAI format (each item has "role" + "content").
+    chat_history
+        A **list** of `{\"role\": ..., \"content\": ...}` messages that already
+        includes the user's latest message.
+    extra_context
+        Optional extra structured data (e.g. Tapix‑cleaned transactions) to pass
+        inside a hidden system message.
+    temperature
+        Sampling temperature for the model (0–2).
 
     Returns
     -------
     str
-        The assistant's reply. If an error occurs, a human‑readable message is
-        returned instead of raising.
+        The assistant's reply ready to display in Streamlit.
     """
-    if not openai.api_key:
+
+    if not OPENAI_API_KEY:
         return (
-            "⚠️ OPENAI_API_KEY environment variable is missing. "
-            "Set it and restart the app to enable AI responses."
+            "⚠️ Your OpenAI key isn't set. Add OPENAI_API_KEY as an environment "
+            "variable or Streamlit secret and re‑run the app."
         )
 
-    messages: List[ChatMessage] = [{"role": "system", "content": SYSTEM_PROMPT}]
-    if chat_history:
-        messages.extend(chat_history)
-    messages.append({"role": "user", "content": user_message})
+    # ---- Build the message list --------------------------------------------
+    messages: List[Dict[str, str]] = [
+        {"role": "system", "content": SYSTEM_PROMPT}
+    ]
 
+    if extra_context is not None:
+        messages.append(
+            {
+                "role": "system",
+                "content": "EXTRA_CONTEXT:\n" + str(extra_context),
+            }
+        )
+
+    # Append the rest of the history (skip any existing system prompts)
+    for m in chat_history:
+        if m["role"] != "system":
+            messages.append(m)
+
+    # ---- Call OpenAI --------------------------------------------------------
     try:
-        completion = openai.ChatCompletion.create(
+        response = openai.ChatCompletion.create(
             model=DEFAULT_MODEL,
             messages=messages,
-            max_tokens=MAX_TOKENS,
-            temperature=TEMPERATURE,
-            top_p=1,
-            stream=False,  # flip to True and yield chunks if you want streaming
+            temperature=temperature,
         )
-        assistant_reply = completion.choices[0].message["content"].strip()
-        return assistant_reply or "(No reply)"
+    except Exception as exc:  # pragma: no cover
+        return f"🚨 OpenAI API error: {exc}"
 
-    except openai.error.OpenAIError as exc:  # broad but keeps imports minimal
-        logger.exception("OpenAI API error: %s", exc)
-        return f"⚠️ Sorry, I couldn’t reach the AI service: {exc}"
-
-    except Exception:  # noqa: BLE001 – catch‑all so the Streamlit app keeps running
-        logger.exception("Unexpected error while contacting the model")
-        return "⚠️ An unexpected error occurred while generating the response."
-
-
-# ---------------------------------------------------------------------------
-# CLI helper for quick manual tests ------------------------------------------------
-# ---------------------------------------------------------------------------
-if __name__ == "__main__":
-    print("Tapix backend quick‑chat. Type 'exit' to quit.")
-    history: List[ChatMessage] = []
-    while True:
-        try:
-            user_input = input("You: ").strip()
-        except (KeyboardInterrupt, EOFError):
-            print("\nBye!")
-            sys.exit(0)
-
-        if user_input.lower() in {"exit", "quit"}:
-            print("Bye!")
-            break
-
-        reply = generate_ai_response(user_input, history)
-        print(f"AI: {reply}\n")
-        history.append({"role": "user", "content": user_input})
-        history.append({"role": "assistant", "content": reply})
+    return response.choices[0].message.content.strip()
