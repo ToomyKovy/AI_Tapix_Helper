@@ -653,11 +653,11 @@ h1, h2, h3, h4, h5, h6, .glass-metrics-heading, .glass-chart h4 {
 }
 
 .suggested-btn-row .stButton > button {
-    background: var(--glass-bg);
+    background: var(--glass-bg) !important;
+    color: #fff !important;
     backdrop-filter: var(--backdrop-blur);
     -webkit-backdrop-filter: var(--backdrop-blur);
     border: 1px solid var(--glass-border);
-    color: #fff;
     border-radius: 16px;
     padding: 0.5rem 1.2rem;
     font-weight: 500;
@@ -670,14 +670,11 @@ h1, h2, h3, h4, h5, h6, .glass-metrics-heading, .glass-chart h4 {
     transition: all 0.3s ease;
     cursor: pointer;
 }
-.suggested-btn-row .stButton > button:hover {
-    background: rgba(124, 58, 237, 0.1);
+.suggested-btn-row .stButton > button:hover,
+.suggested-btn-row .stButton > button:active {
+    background: var(--glass-bg) !important;
+    color: #fff !important;
     border-color: rgba(124, 58, 237, 0.3);
     transform: translateY(-2px);
     box-shadow: var(--glass-shadow-hover);
-    color: #fff;
-}
-.suggested-btn-row .stButton > button:active {
-    background: var(--glass-bg);
-    color: #fff;
 }
