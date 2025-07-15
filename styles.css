@@ -616,8 +616,8 @@ h1, h2, h3, h4, h5, h6, [data-testid="metric-container"] label {
     gap: 0.4rem;
     align-items: stretch;
     min-height: unset;
-    max-height: 180px;
-    overflow: hidden;
+    /* max-height: 180px; */
+    /* overflow: hidden; */
 }
 
 .glass-metrics .stMetric {
