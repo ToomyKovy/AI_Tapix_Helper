@@ -71,19 +71,18 @@ if "df" not in st.session_state:
 ################################################################################
 
 with st.sidebar:
-    st.markdown("### 📊 Quick snapshot")
-
-    # Remove the CSV upload feature
-    # Only use the sample_transactions.csv file in the root folder
+    # Remove the '📊 Quick snapshot' and 'Select Month' labels
     df = st.session_state["df"]
 
     if not df.empty:
-        # Month selector
+        # Metrics and month selector in a glassmorphism container
+        st.markdown('<div class="glass-metrics">', unsafe_allow_html=True)
+        st.markdown('<div class="glass-metrics-heading">Quick Snapshot</div>', unsafe_allow_html=True)
         months = df["date"].dt.to_period("M").sort_values().unique()
         current_period = pd.Timestamp.now().to_period("M")
         month_strs = [str(m) for m in months]
         default_index = month_strs.index(str(current_period)) if str(current_period) in month_strs else len(month_strs) - 1
-        selected_month = st.selectbox("Select Month", month_strs, index=default_index)
+        selected_month = st.selectbox("", month_strs, index=default_index, label_visibility="collapsed")
         selected_period = pd.Period(selected_month)
         current_month = df[df["date"].dt.to_period("M") == selected_period]
 
@@ -93,9 +92,6 @@ with st.sidebar:
             if not current_month.empty else "–"
         )
 
-        # Metrics in a glassmorphism container with a prominent heading
-        st.markdown('<div class="glass-metrics">', unsafe_allow_html=True)
-        st.markdown('<div class="glass-metrics-heading">Quick Snapshot</div>', unsafe_allow_html=True)
         st.metric("This Month's Spend", f"${month_total:,.2f}")
         st.metric("Top Category", top_cat)
         st.metric("Transactions Analysed", f"{len(df):,}")
