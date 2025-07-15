@@ -653,7 +653,7 @@ h1, h2, h3, h4, h5, h6, .glass-metrics-heading, .glass-chart h4 {
 }
 
 .suggested-btn-row .stButton > button {
-    background: rgba(173, 216, 255, 0.7); /* light blue, similar to quick snapshot */
+    background: var(--glass-bg);
     backdrop-filter: var(--backdrop-blur);
     -webkit-backdrop-filter: var(--backdrop-blur);
     border: 1px solid var(--glass-border);
@@ -675,8 +675,9 @@ h1, h2, h3, h4, h5, h6, .glass-metrics-heading, .glass-chart h4 {
     border-color: rgba(124, 58, 237, 0.3);
     transform: translateY(-2px);
     box-shadow: var(--glass-shadow-hover);
+    color: #fff;
 }
 .suggested-btn-row .stButton > button:active {
-    background: rgba(173, 216, 255, 0.95);
+    background: var(--glass-bg);
     color: #fff;
 }
