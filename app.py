@@ -169,10 +169,8 @@ with st.sidebar:
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)'
             )
-            st.markdown('<div class="glass-chart">', unsafe_allow_html=True)
             st.markdown("<h4 style='margin-top:0'>📈 Category Breakdown</h4>", unsafe_allow_html=True)
             st.plotly_chart(fig, use_container_width=True)
-            st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.warning('No data loaded from sample_transactions.csv. Please check the file.')
 
