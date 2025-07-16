@@ -71,20 +71,53 @@ if "df" not in st.session_state:
 ################################################################################
 
 with st.sidebar:
-    # Sidebar width slider
-    sidebar_width = st.slider("Sidebar Width (px)", min_value=250, max_value=600, value=350, step=10)
-    st.markdown(
-        f"""
-        <style>
-        section[data-testid='stSidebar'] {{
-            min-width: {sidebar_width}px !important;
-            width: {sidebar_width}px !important;
-            max-width: 100vw !important;
-        }}
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    # Remove the sidebar width slider
+    # Add a draggable handle and JS for resizing
+    st.markdown("""
+    <style>
+    #custom-sidebar-resizer {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 8px;
+        height: 100vh;
+        cursor: ew-resize;
+        z-index: 1000;
+        background: transparent;
+    }
+    section[data-testid='stSidebar'] {
+        position: relative !important;
+    }
+    </style>
+    <div id="custom-sidebar-resizer"></div>
+    <script>
+    const resizer = window.parent.document.getElementById('custom-sidebar-resizer');
+    const sidebar = window.parent.document.querySelector('section[data-testid="stSidebar"]');
+    let isResizing = false;
+    let startX = 0;
+    let startWidth = 0;
+    if (resizer && sidebar) {
+        resizer.onmousedown = function(e) {
+            isResizing = true;
+            startX = e.clientX;
+            startWidth = sidebar.offsetWidth;
+            document.body.style.cursor = 'ew-resize';
+        };
+        window.parent.document.onmousemove = function(e) {
+            if (!isResizing) return;
+            let newWidth = startWidth + (e.clientX - startX);
+            newWidth = Math.max(250, Math.min(newWidth, 600));
+            sidebar.style.width = newWidth + 'px';
+            sidebar.style.minWidth = newWidth + 'px';
+            sidebar.style.maxWidth = newWidth + 'px';
+        };
+        window.parent.document.onmouseup = function() {
+            isResizing = false;
+            document.body.style.cursor = '';
+        };
+    }
+    </script>
+    """, unsafe_allow_html=True)
     df = st.session_state["df"]
     if not df.empty:
         # Remove the glass-metrics container div
