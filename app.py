@@ -71,10 +71,23 @@ if "df" not in st.session_state:
 ################################################################################
 
 with st.sidebar:
+    # Sidebar width slider
+    sidebar_width = st.slider("Sidebar Width (px)", min_value=250, max_value=600, value=350, step=10)
+    st.markdown(
+        f"""
+        <style>
+        section[data-testid='stSidebar'] {{
+            min-width: {sidebar_width}px !important;
+            width: {sidebar_width}px !important;
+            max-width: 100vw !important;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
     df = st.session_state["df"]
     if not df.empty:
-        # Glassmorphism box for snapshot
-        st.markdown('<div class="glass-metrics">', unsafe_allow_html=True)
+        # Remove the glass-metrics container div
         st.markdown('<div class="glass-metrics-heading">Quick Snapshot</div>', unsafe_allow_html=True)
         months = df["date"].dt.to_period("M").sort_values().unique()
         current_period = pd.Timestamp.now().to_period("M")
@@ -92,7 +105,6 @@ with st.sidebar:
         st.metric("This Month's Spend", f"${month_total:,.2f}")
         st.metric("Top Category", top_cat)
         st.metric("Transactions Analysed", f"{len(current_month):,}")
-        st.markdown('</div>', unsafe_allow_html=True)
 
         # Glassmorphism box for pie chart
         if not current_month.empty:
